@@ -1,0 +1,252 @@
+openapi: 3.0.3
+info:
+  title: SIM Card Management API
+  version: 1.0.0
+  description: >-
+    CRUD API for managing SIM cards (ICCID, IMSI, MSISDN, status, assignment).
+    Errors are returned as RFC-7807 application/problem+json.
+  contact:
+    name: SIM Platform Team
+    email: sim-platform@example.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+  - url: http://localhost:8080
+    description: Local
+tags:
+  - name: SIM Cards
+    description: Create, read, update and delete SIM cards
+paths:
+  /api/v1/sim-cards:
+    get:
+      tags: [SIM Cards]
+      summary: List all SIM cards
+      operationId: listSimCards
+      responses:
+        '200':
+          description: List of SIM cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SimCardResponse'
+    post:
+      tags: [SIM Cards]
+      summary: Create a SIM card
+      description: Registers a new SIM card. ICCID and MSISDN must be unique.
+      operationId: createSimCard
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimCardRequest'
+      responses:
+        '201':
+          description: SIM card created
+          headers:
+            Location:
+              description: URI of the created SIM card
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimCardResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/sim-cards/{id}:
+    get:
+      tags: [SIM Cards]
+      summary: Get a SIM card by id
+      operationId: getSimCardById
+      parameters:
+        - $ref: '#/components/parameters/SimCardId'
+      responses:
+        '200':
+          description: SIM card found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimCardResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [SIM Cards]
+      summary: Update a SIM card
+      description: Replaces all mutable fields of an existing SIM card.
+      operationId: updateSimCard
+      parameters:
+        - $ref: '#/components/parameters/SimCardId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimCardRequest'
+      responses:
+        '200':
+          description: SIM card updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimCardResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [SIM Cards]
+      summary: Delete a SIM card
+      operationId: deleteSimCard
+      parameters:
+        - $ref: '#/components/parameters/SimCardId'
+      responses:
+        '204':
+          description: SIM card deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    SimCardId:
+      name: id
+      in: path
+      required: true
+      description: SIM card id
+      schema:
+        type: integer
+        format: int64
+        example: 1
+  responses:
+    NotFound:
+      description: SIM card not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Conflict:
+      description: Duplicate ICCID or MSISDN
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/problem+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ProblemDetail'
+              - type: object
+                properties:
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: string
+                    description: Field-level validation messages
+                    example:
+                      iccid: iccid must be 19-22 digits
+  schemas:
+    SimStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED, BLOCKED]
+    SimCardRequest:
+      type: object
+      required: [iccid, imsi, msisdn, carrier]
+      properties:
+        iccid:
+          type: string
+          pattern: '^\d{19,22}$'
+          description: Integrated Circuit Card Identifier (unique)
+          example: '8949012345678901234'
+        imsi:
+          type: string
+          pattern: '^\d{14,15}$'
+          description: International Mobile Subscriber Identity
+          example: '262011234567890'
+        msisdn:
+          type: string
+          pattern: '^\d{7,15}$'
+          description: Mobile number attached to the SIM (unique)
+          example: '4915112345678'
+        carrier:
+          type: string
+          maxLength: 60
+          example: Telekom
+        planType:
+          type: string
+          maxLength: 60
+          example: Prepaid-S
+        status:
+          $ref: '#/components/schemas/SimStatus'
+        assignedTo:
+          type: string
+          maxLength: 100
+          example: Om Sarangani
+        activationDate:
+          type: string
+          format: date
+          example: '2025-01-15'
+    SimCardResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        iccid:
+          type: string
+          example: '8949012345678901234'
+        imsi:
+          type: string
+          example: '262011234567890'
+        msisdn:
+          type: string
+          example: '4915112345678'
+        carrier:
+          type: string
+          example: Telekom
+        planType:
+          type: string
+          example: Prepaid-S
+        status:
+          $ref: '#/components/schemas/SimStatus'
+        assignedTo:
+          type: string
+          example: Om Sarangani
+        activationDate:
+          type: string
+          format: date
+          example: '2025-01-15'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProblemDetail:
+      type: object
+      description: RFC-7807 problem detail
+      properties:
+        type:
+          type: string
+          format: uri
+          example: about:blank
+        title:
+          type: string
+          example: Not Found
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+          example: SIM card not found with id 1
+        instance:
+          type: string
+          format: uri

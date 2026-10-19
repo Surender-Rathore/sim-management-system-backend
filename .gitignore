@@ -1,0 +1,21 @@
+# Maven build output (isme purana password bhi hota hai)
+target/
+
+# Local credentials, kabhi commit nahi
+application-local.yml
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
